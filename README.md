@@ -38,6 +38,10 @@ title: Wochenendeinkauf
 | `show_completed` | `false` | Erledigte Einträge anzeigen |
 | `max_items` | `0` | Maximale Anzahl angezeigter Einträge (0 = alle) |
 | `accent` | `#F0B445` | Akzentfarbe (CSS-Farbe) |
+| `show_input` | `true` | Eingabepille anzeigen (`false` = nur Liste) |
+| `show_header` | `true` | Titelzeile auch ohne Aufklappen anzeigen |
+| `show_description` | `false` | Beschreibung unter dem Eintrag (2 Zeilen) |
+| `background`, `border_color`, `text_color`, `muted_color`, `radius` | Theme | Farben und Rundung überschreiben |
 
 Die Karte nutzt die Theme-Variablen `--ha-card-background`, `--divider-color`, `--primary-text-color` und `--secondary-text-color`.
 

@@ -1,5 +1,5 @@
 /*! todo-quick-add-card — Texteingabe + aufklappbare Liste für jede Home-Assistant-Todo-Entität */
-const TQA_VERSION = "1.0.0";
+const TQA_VERSION = "1.1.0";
 
 class TodoQuickAddCard extends HTMLElement {
   static getStubConfig(hass) {
@@ -21,7 +21,15 @@ class TodoQuickAddCard extends HTMLElement {
       allow_check: false,
       show_completed: false,
       max_items: 0,
+      show_input: true,
+      show_header: true,
+      show_description: false,
       accent: "",
+      background: "",
+      border_color: "",
+      text_color: "",
+      muted_color: "",
+      radius: "",
       ...config,
     };
     this._items = [];
@@ -52,17 +60,16 @@ class TodoQuickAddCard extends HTMLElement {
     this._root.innerHTML = `
       <style>
         :host { display: block; --tqa-accent: #F0B445; }
+        :host { --tqa-bg: var(--ha-card-background, var(--card-background-color, #141A22)); --tqa-border: var(--tqa-border); --tqa-ink: var(--primary-text-color, #F0F4F8); --tqa-muted: var(--secondary-text-color, #B0BBC6); --tqa-shadow: var(--ha-card-box-shadow, none); --tqa-radius: 20px; }
         .wrap { display: flex; flex-direction: column; gap: 10px; }
-        .surface { background: var(--ha-card-background, var(--card-background-color, #141A22));
-                   border: 1px solid var(--divider-color, #2A3441);
-                   box-shadow: var(--ha-card-box-shadow, none); color: var(--primary-text-color); }
+        .surface { background: var(--tqa-bg); border: 1px solid var(--tqa-border); box-shadow: var(--tqa-shadow); color: var(--tqa-ink); }
         .pill { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 6px 0 16px;
                 border-radius: 999px; box-sizing: border-box; transition: border-color .2s; }
         .pill:focus-within { border-color: var(--tqa-accent); }
         .pill > ha-icon { color: var(--tqa-accent); --mdc-icon-size: 22px; flex: none; }
         input { flex: 1; min-width: 0; background: none; border: none; outline: none; padding: 0;
-                color: var(--primary-text-color); font: inherit; font-size: 16px; }
-        input::placeholder { color: var(--secondary-text-color); opacity: .8; }
+                color: var(--tqa-ink); font: inherit; font-size: 16px; }
+        input::placeholder { color: var(--tqa-muted); opacity: .8; }
         .send { flex: none; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
                 display: grid; place-items: center; background: var(--tqa-accent); color: #2A1A00;
                 box-shadow: 0 0 0 3px color-mix(in srgb, var(--tqa-accent) 22%, transparent),
@@ -71,20 +78,24 @@ class TodoQuickAddCard extends HTMLElement {
         .send ha-icon { --mdc-icon-size: 22px; }
         .spin { animation: tqa-spin 1s linear infinite; }
         @keyframes tqa-spin { to { transform: rotate(360deg); } }
-        .head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 20px;
+        .head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--tqa-radius);
                 cursor: pointer; font: inherit; text-align: left; width: 100%; box-sizing: border-box; }
         .head .chev { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
                       background: color-mix(in srgb, var(--tqa-accent) 16%, transparent); color: var(--tqa-accent); }
         .head .t { font-weight: 600; font-size: 15px; }
-        .head .s { font-size: 12.5px; color: var(--secondary-text-color); }
-        .list { border-radius: 20px; padding: 4px 14px; }
+        .head .s { font-size: 12.5px; color: var(--tqa-muted); }
+        .head.static { cursor: default; }
+        .list { border-radius: var(--tqa-radius); padding: 4px 14px; }
         .row { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14.5px; }
-        .row + .row { border-top: 1px solid var(--divider-color, #2A3441); }
-        .row ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); flex: none; }
+        .row + .row { border-top: 1px solid var(--tqa-border); }
+        .row ha-icon { --mdc-icon-size: 20px; color: var(--tqa-muted); flex: none; }
         .row.pending { opacity: .6; }
         .row.done .txt { text-decoration: line-through; opacity: .6; }
+        .row.done ha-icon { color: var(--tqa-accent); }
+        .row .sub { font-size: 12.5px; color: var(--tqa-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .row .main { padding: 8px 0; min-width: 0; flex: 1; }
         .row.check { cursor: pointer; }
-        .empty { padding: 14px 0; color: var(--secondary-text-color); font-size: 14px; }
+        .empty { padding: 14px 0; color: var(--tqa-muted); font-size: 14px; }
         .err { color: var(--error-color, #FF8F6E); font-size: 13px; padding: 0 16px; }
         [hidden] { display: none !important; }
       </style>
@@ -108,17 +119,23 @@ class TodoQuickAddCard extends HTMLElement {
     // pointerdown + preventDefault: Eingabefeld behält den Fokus (Tastatur bleibt offen)
     this._sendBtn.addEventListener("pointerdown", (e) => e.preventDefault());
     this._sendBtn.addEventListener("click", () => this._send());
-    this._head.addEventListener("click", () => this._toggle());
+    this._head.addEventListener("click", () => { if (this._config.collapsible) this._toggle(); });
   }
 
   _applyConfig() {
     const c = this._config, $ = (id) => this._root.getElementById(id);
     this.style.setProperty("--tqa-accent", c.accent || "#F0B445");
+    const set = (k, v) => (v ? this.style.setProperty(k, v) : this.style.removeProperty(k));
+    set("--tqa-bg", c.background); set("--tqa-border", c.border_color); set("--tqa-ink", c.text_color);
+    set("--tqa-muted", c.muted_color); set("--tqa-radius", c.radius);
+    this._root.querySelector(".pill").hidden = !c.show_input;
+    this._head.classList.toggle("static", !c.collapsible);
+    this._root.getElementById("chev").parentElement.hidden = !c.collapsible;
     $("icon").setAttribute("icon", c.icon);
     this._sendIcon.setAttribute("icon", c.send_icon);
     this._inp.placeholder = c.placeholder;
     $("title").textContent = c.title || "Liste";
-    this._head.hidden = !c.collapsible;
+    this._head.hidden = !(c.collapsible || c.show_header);
   }
 
   // ---------------------------------------------------------------- Zustand
@@ -214,8 +231,10 @@ class TodoQuickAddCard extends HTMLElement {
         ? (it.status === "completed" ? "mdi:checkbox-marked-outline" : "mdi:checkbox-blank-outline")
         : (it.pending ? "mdi:loading" : "mdi:circle-small"));
       if (it.pending) ic.classList.add("spin");
-      const t = document.createElement("span"); t.className = "txt"; t.textContent = it.summary;
-      row.append(ic, t);
+      const main = document.createElement("div"); main.className = "main";
+      const t = document.createElement("div"); t.className = "txt"; t.textContent = it.summary; main.appendChild(t);
+      if (c.show_description && it.description) { const d = document.createElement("div"); d.className = "sub"; d.textContent = it.description; main.appendChild(d); }
+      row.append(ic, main);
       if (c.allow_check && !it.pending) row.addEventListener("click", () => this._check(it));
       this._listEl.appendChild(row);
     }
