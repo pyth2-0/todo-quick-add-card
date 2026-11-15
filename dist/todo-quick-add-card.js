@@ -1,5 +1,5 @@
 /*! todo-quick-add-card — Texteingabe + aufklappbare Liste für jede Home-Assistant-Todo-Entität */
-const TQA_VERSION = "1.2.0";
+const TQA_VERSION = "1.2.1";
 
 class TodoQuickAddCard extends HTMLElement {
   static getStubConfig(hass) {
@@ -60,7 +60,7 @@ class TodoQuickAddCard extends HTMLElement {
     this._root.innerHTML = `
       <style>
         :host { display: block; --tqa-accent: #F0B445; }
-        :host { --tqa-bg: var(--ha-card-background, var(--card-background-color, #141A22)); --tqa-border: var(--tqa-border); --tqa-ink: var(--primary-text-color, #F0F4F8); --tqa-muted: var(--secondary-text-color, #B0BBC6); --tqa-shadow: var(--ha-card-box-shadow, none); --tqa-radius: 20px; }
+        :host { --tqa-bg: var(--ha-card-background, var(--card-background-color, #141A22)); --tqa-border: var(--divider-color, #2A3441); --tqa-ink: var(--primary-text-color, #F0F4F8); --tqa-muted: var(--secondary-text-color, #B0BBC6); --tqa-shadow: var(--ha-card-box-shadow, none); --tqa-radius: 20px; }
         .wrap { display: flex; flex-direction: column; gap: 10px; }
         .surface { background: var(--tqa-bg); border: 1px solid var(--tqa-border); box-shadow: var(--tqa-shadow); color: var(--tqa-ink); }
         .pill { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 6px 0 16px;
