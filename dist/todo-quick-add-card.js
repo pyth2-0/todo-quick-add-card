@@ -1,5 +1,5 @@
 /*! todo-quick-add-card — Texteingabe + aufklappbare Liste für jede Home-Assistant-Todo-Entität */
-const TQA_VERSION = "1.1.0";
+const TQA_VERSION = "1.2.0";
 
 class TodoQuickAddCard extends HTMLElement {
   static getStubConfig(hass) {
@@ -78,14 +78,16 @@ class TodoQuickAddCard extends HTMLElement {
         .send ha-icon { --mdc-icon-size: 22px; }
         .spin { animation: tqa-spin 1s linear infinite; }
         @keyframes tqa-spin { to { transform: rotate(360deg); } }
-        .head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--tqa-radius);
+        .group { border-radius: var(--tqa-radius); overflow: hidden; }
+        .head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: none; color: inherit;
                 cursor: pointer; font: inherit; text-align: left; width: 100%; box-sizing: border-box; }
         .head .chev { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
                       background: color-mix(in srgb, var(--tqa-accent) 16%, transparent); color: var(--tqa-accent); }
         .head .t { font-weight: 600; font-size: 15px; }
         .head .s { font-size: 12.5px; color: var(--tqa-muted); }
         .head.static { cursor: default; }
-        .list { border-radius: var(--tqa-radius); padding: 4px 14px; }
+        .list { padding: 0 14px; }
+        .head:not([hidden]) + .list { border-top: 1px solid var(--tqa-border); }
         .row { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14.5px; }
         .row + .row { border-top: 1px solid var(--tqa-border); }
         .row ha-icon { --mdc-icon-size: 20px; color: var(--tqa-muted); flex: none; }
@@ -106,15 +108,17 @@ class TodoQuickAddCard extends HTMLElement {
           <button class="send" id="send" aria-label="Hinzufügen"><ha-icon id="sendicon"></ha-icon></button>
         </div>
         <div class="err" id="err" hidden></div>
-        <button class="head surface" id="head" hidden>
-          <span class="chev"><ha-icon id="chev"></ha-icon></span>
-          <span><div class="t" id="title"></div><div class="s" id="count"></div></span>
-        </button>
-        <div class="list surface" id="list" hidden></div>
+        <div class="group surface" id="group" hidden>
+          <button class="head" id="head" hidden>
+            <span class="chev"><ha-icon id="chev"></ha-icon></span>
+            <span><div class="t" id="title"></div><div class="s" id="count"></div></span>
+          </button>
+          <div class="list" id="list" hidden></div>
+        </div>
       </div>`;
     const $ = (id) => this._root.getElementById(id);
     this._inp = $("inp"); this._sendBtn = $("send"); this._sendIcon = $("sendicon");
-    this._listEl = $("list"); this._head = $("head"); this._err = $("err");
+    this._listEl = $("list"); this._head = $("head"); this._group = $("group"); this._err = $("err");
     this._inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); this._send(); } });
     // pointerdown + preventDefault: Eingabefeld behält den Fokus (Tastatur bleibt offen)
     this._sendBtn.addEventListener("pointerdown", (e) => e.preventDefault());
@@ -217,6 +221,7 @@ class TodoQuickAddCard extends HTMLElement {
     $("chev").setAttribute("icon", this._open ? "mdi:chevron-up" : "mdi:chevron-down");
     const visible = !c.collapsible || this._open;
     this._listEl.hidden = !visible;
+    this._group.hidden = this._head.hidden && !visible;
     if (!visible) return;
     this._listEl.textContent = "";
     if (!shown.length) {
